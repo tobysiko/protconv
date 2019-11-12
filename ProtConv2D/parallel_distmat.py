@@ -18,6 +18,7 @@ def calc_mat_val(a1, a2, xyz1, xyz2, q1, q2, r1, r2, p1, p2, parms):
     return (dmat, cmat, sdmat, simat, pmat)
 
 def data_stream_val(N, xyz, q, r, p, parms):
+    #print(N, xyz, q, r, p, parms)
     for a1 in N:
         xyz1 = xyz[a1]
         q1 = q[a1]
@@ -31,5 +32,6 @@ def data_stream_val(N, xyz, q, r, p, parms):
             p2 = p[a2]
             if a1 <= a2:
                 yield a1, a2, xyz1, xyz2, q1, q2, r1, r2, p1, p2, parms
+
 def proxy(args):
     return args[:2], calc_mat_val(*args)

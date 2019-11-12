@@ -4,28 +4,39 @@ Created on Fri Feb 10 18:30:46 2017
 
 @author: ts149092
 """
+import argparse
+import glob
+import json
+import math
+import operator
+import os
+import random
+import subprocess as sub
+import sys
+import time
+from collections import OrderedDict
+from multiprocessing import Pool, cpu_count
+import getpass
+
 import matplotlib as mpl
 #mpl.use('Agg')
 import matplotlib.cm as cm
 import matplotlib.pyplot as plt
-import subprocess as sub
-import os, sys, argparse, math, random, glob, operator, json
 import numpy as np
 import numpy.ma as ma
 import pandas as pd
-import prody
-import tables
-from scipy.misc import imread,imsave,imresize
-from MLhelpers import print_progress
-#%matplotlib inline
 import seaborn as sns
-sns.set()
-from collections import OrderedDict
-from multiprocessing import Pool, cpu_count
-import time
+import tables
+from scipy.misc import imread, imresize, imsave
+from sklearn.metrics.pairwise import pairwise_distances
+
 #from Bio.PDB import PDBParser, PDBExceptions, PDBIO, Selection, Residue
 import parallel_distmat as par
-from sklearn.metrics.pairwise import pairwise_distances
+import prody
+from MLhelpers import print_progress
+
+userid = getpass.getuser()
+sns.set()
 
 
 class PDBToImageConverter():
@@ -496,7 +507,7 @@ class PDBToImageConverter():
                         assert len(aa)==1, str(atom_df[ (atom_df["rnum"]==r) & (atom_df["chid"]==chain) ])
                         
                         aa = aa[0]
-                        alist = atom_df[ (atom_df["rnum"]==r) & (atom_df["chid"]==chain) ].loc[:,"aname"].to_list()
+                        alist = list(atom_df[ (atom_df["rnum"]==r) & (atom_df["chid"]==chain) ].loc[:,"aname"])
                         can = self.canonical_atom_order[aa]
                         if self.verbosity>1: 
                             if alist != can:
@@ -531,7 +542,10 @@ class PDBToImageConverter():
 
             # BUILD DISTANCE BASED MATRICES
             if self.verbosity>1: print("build dist matrices...")
-            distmat, coulombmat, seqdistmat, seqindmat, distmat_pocket = self.my_mats_p(atom_df)
+            if self.nprocs>1:
+                distmat, coulombmat, seqdistmat, seqindmat, distmat_pocket = self.my_mats_p(atom_df)
+            else:
+                distmat, coulombmat, seqdistmat, seqindmat, distmat_pocket = self.my_mats(atom_df)
             #assert distmat.shape == (nat,nat)
 
             
@@ -646,15 +660,14 @@ class PDBToImageConverter():
                 "cmaxcut": 0.05
                 }
         
-        print(parms)
-        parr = atom_df["pocket"].values if parms["do_pocket"] else np.array(atom_df.shape[0])
-        print("parr.sum()",  parr.sum())
+        parr = atom_df["pocket"].values if parms["do_pocket"] else np.zeros(atom_df.shape[0])
         
         coords = np.array(list(zip(atom_df["x"],atom_df["y"],atom_df["z"])) )
 
         if self.verbosity>=1: 
             print("parallel calculation across ", self.nprocs)
             start = time.time()
+        
         results = pool.map(par.proxy, 
                             par.data_stream_val(range(n), 
                                             coords, 
@@ -918,8 +931,8 @@ def getDomList(loc):
     return idlist
 
 # Run external executable of "pdb2pqr" on PDB files from a domain list within a specified folder and converts them to PQR files in a different folder.
-def pdb2pqr(idlist, pdbloc,pqrloc,exe="pdb2pqr.exe",show_output=False, show_error=False, 
-    ff="amber", quiet=False, is_pdbbind=False, options=" --chain --chi --hbond --rama --salt --contact --summary "%(), overwrite=False):
+def pdb2pqr(idlist, pdbloc,pqrloc,exe="pdb2pqr",show_output=False, show_error=False, 
+    ff="amber", quiet=False, is_pdbbind=False, options=" --chain   "%(), overwrite=False):
     # DOC: https://apbs-pdb2pqr.readthedocs.io/en/latest/pdb2pqr/invoking.html#method-descriptions
     # binaries: https://sourceforge.net/projects/pdb2pqr/
     assert os.path.exists(exe), "Could not find PDB2PQR executable, please check path:"+os.path.abspath(exe)
@@ -932,7 +945,7 @@ def pdb2pqr(idlist, pdbloc,pqrloc,exe="pdb2pqr.exe",show_output=False, show_erro
             dompqr = os.path.join(pdbloc,dom,"%s_protein.pqr"%dom)
             ligand = ' --ligand="%s" '%(os.path.join(pdbloc,dom,"%s_ligand.mol2"%dom) )
         else:
-            dompdb = os.path.join(pdbloc,"%s.pdb"%dom)
+            dompdb = os.path.join(pdbloc,"%s"%dom[:4].lower()+dom[4:].upper())
             dompqr = os.path.join(pqrloc,"%s.pqr"%dom)
             ligand = ""
         if not quiet: print( dompdb, dompqr, os.path.exists(dompdb) and not os.path.exists(dompqr) )
@@ -1069,11 +1082,11 @@ if __name__=="__main__":
     
     # PARSE COMMAND LINE ARGUMENTS
     ap = argparse.ArgumentParser()
-    ap.add_argument("--basepath", default="", help="")
-    ap.add_argument("--idlistfile", default="PDBBIND_general_PL_metadata_utf8.csv", help="")
-    ap.add_argument("--pdbpath", default="refined-set",help="PDB files containing protein structure data")
-    ap.add_argument("--pqrpath", default="pqr",help="To store PQR files converted from PDB")
-    ap.add_argument("--pngpath", default="png",help="To store images of protein structures")
+    ap.add_argument("--basepath", default=f"/home/{userid}/data", help="")
+    ap.add_argument("--idlistfile", default="cath-dataset-nonredundant-S40.list.txt", help="")
+    ap.add_argument("--pdbpath", default="dompdb",help="PDB files containing protein structure data")
+    ap.add_argument("--pqrpath", default="dompqr",help="To store PQR files converted from PDB")
+    ap.add_argument("--pngpath", default="dompng",help="To store images of protein structures")
     ap.add_argument("--csvpath", default="csv",help="To store data frames with atom sequence")
     ap.add_argument("--h5name", default="h5out.h5",help="")
     ap.add_argument("--imgdim", type=int, default=None, help="")
@@ -1082,7 +1095,7 @@ if __name__=="__main__":
     ap.add_argument("--calcpqr", action="store_true",default=False, help="")
     ap.add_argument("--informat",choices=["pdb","pqr"],default="pqr",help="pdb or pqr")
     ap.add_argument("--outformat",choices=["png","npy"],default="png",help="png or npy - beware that npy binary files are huge!")
-    ap.add_argument("--pdb2pqr", default="C:\\Users\\ts149092\\pdb2pqr-windows-bin64-2.1.0\\pdb2pqr.exe",help="path to the pdb2pqr executable")
+    ap.add_argument("--pdb2pqr", default=f"/home/{userid}/pdb2pqr-linux-bin64-2.1.1/pdb2pqr",help="path to the pdb2pqr executable")
     ap.add_argument("--savechannels", type=bool, default=True, help="If three channels are provided, an rgb output will be written. Do you want to save the individual channels as well?")
     ap.add_argument("--randomize", action="store_true", help="randomize the order of inputs")
     ap.add_argument("--distmat_cutoff", type=float, default=51.2, help="")
