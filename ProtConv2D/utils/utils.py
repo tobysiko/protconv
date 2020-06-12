@@ -5,33 +5,8 @@ def round_figures(x, n):
     """Returns x rounded to n significant figures."""
     return round(x, int(n - math.ceil(math.log10(abs(x)))))
 
-# Print iterations progress
-def print_progress(
-    iteration, total, prefix="", suffix="", decimals=1, bar_length=20, prog_symbol="█"
-):
-    """
-    Call in a loop to create terminal progress bar
 
-    @params:
-        iteration   - Required  : current iteration (Int)
-        total       - Required  : total iterations (Int)
-        prefix      - Optional  : prefix string (Str)
-        suffix      - Optional  : suffix string (Str)
-        decimals    - Optional  : positive number of decimals in percent complete (Int)
-        bar_length  - Optional  : character length of bar (Int)
-    """
-    str_format = "{0:." + str(decimals) + "f}"
-    percents = str_format.format(100 * (iteration / float(total)))
-    filled_length = int(round(bar_length * iteration / float(total)))
-
-    bar = prog_symbol * filled_length + "-" * (bar_length - filled_length)
-
-    sys.stdout.write("\r%s |%s| %s%s %s" % (prefix, bar, percents, "%", suffix)),
-
-    if iteration == total:
-        sys.stdout.write("\n")
-    sys.stdout.flush()
-
+import sys
 
 def list_columns(obj, cols=4, columnwise=True, gap=4):
     """
@@ -66,3 +41,26 @@ def list_columns(obj, cols=4, columnwise=True, gap=4):
     printer = "\n".join(["".join([c.ljust(max_len + gap) for c in p]) for p in plist])
     print(printer)
 
+# Print iterations progress
+def print_progress(iteration, total, prefix='', suffix='', decimals=1, bar_length=20, prog_symbol='█'):
+    """
+    Call in a loop to create terminal progress bar
+    @params:
+        iteration   - Required  : current iteration (Int)
+        total       - Required  : total iterations (Int)
+        prefix      - Optional  : prefix string (Str)
+        suffix      - Optional  : suffix string (Str)
+        decimals    - Optional  : positive number of decimals in percent complete (Int)
+        bar_length  - Optional  : character length of bar (Int)
+    """
+    str_format = "{0:." + str(decimals) + "f}"
+    percents = str_format.format(100 * (iteration / float(total)))
+    filled_length = int(round(bar_length * iteration / float(total)))
+
+    bar = prog_symbol * filled_length + '-' * (bar_length - filled_length)
+
+    sys.stdout.write('\r%s |%s| %s%s %s' % (prefix, bar, percents, '%', suffix)),
+
+    if iteration == total:
+        sys.stdout.write('\n')
+    sys.stdout.flush()

@@ -26,9 +26,13 @@ from scipy.misc import imread, imresize, imsave
 from sklearn.metrics.pairwise import pairwise_distances
 
 # from Bio.PDB import PDBParser, PDBExceptions, PDBIO, Selection, Residue
-import parallel_distmat as par
+import pathlib
+local_path = pathlib.Path(__file__).parent.absolute()
+sys.path.append(os.path.split(local_path)[0])
+print(sys.path)
+import utils.parallel_distmat as par
 import prody
-from MLhelpers import print_progress
+from utils.utils import print_progress
 
 userid = getpass.getuser()
 sns.set()
@@ -1173,6 +1177,7 @@ def buildDistMatrixAnnot(
 
 #  Obtain domain list from file. Domain IDs are the first white-space separated entry in a line. Comments (#...) are ignored.
 def getDomList(loc):
+    assert os.path.exists(loc), loc
     with open(loc, "r") as domlistfile:
         lines = domlistfile.readlines()  # .split()
     idlist = []
