@@ -1,3 +1,6 @@
+
+IMPORTANT: This code is currently NOT functional! 
+
 # Introduction 
 ProtConv2D converts protein structures in PDB format into fingerprints of fixed length by using a 2D CNN as encoder on distance matrices. These fingerprints can be used as additional features in machine learning tasks that make predictions based on proteins (i.e. drug targets).
 
