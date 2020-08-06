@@ -3,5 +3,5 @@
     "python.linting.pylintEnabled": false,
     "python.linting.mypyEnabled": true,
     "python.linting.enabled": true,
-    "python.pythonPath": "/Users/sikosek/opt/anaconda3/envs/keras/bin/python"
+    "python.pythonPath": "/Users/lucyzhang/anaconda3/envs/urop_summer_2020/bin/python"
 }

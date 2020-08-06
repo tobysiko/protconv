@@ -1,0 +1,2 @@
+#!/bin/sh
+python pdb2image.py --basepath=/Users/lucyzhang/

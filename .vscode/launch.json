@@ -1,0 +1,29 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python: Current File",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "args": [
+                "--basepath=/Users/lucyzhang/", 
+                "--csvpath=Documents/urop_summer_2020/protconv/ProtConv2D/data/test/csv",
+                "--idlistfile=Documents/urop_summer_2020/protconv/ProtConv2D/data/test/idlist.txt", 
+                "--pdbpath=Documents/urop_summer_2020/protconv/ProtConv2D/data/test/dompdb",
+                "--pqrpath=Documents/urop_summer_2020/protconv/ProtConv2D/data/test/dompqr",
+                "--pngpath=Documents/urop_summer_2020/protconv/ProtConv2D/data/test/dompng",
+                "--verbosity=2", 
+                "--informat=pqr",
+                // "--calcpqr", 
+                "--overwrite",
+                "--download_files",
+                "--pdb2pqr=/Users/lucyzhang/pdb2pqr-osx-bin64-2.1.0/pdb2pqr"
+            ]
+        }
+    ]
+}
