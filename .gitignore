@@ -72,6 +72,16 @@ target/
 # Jupyter Notebook
 .ipynb_checkpoints
 
+# VS Code
+.vscode/*
+.vscode/
+.vscode
+
+# PDB or PQR files
+*.pdb
+*.pqr
+*.pdb.gz
+
 # pyenv
 .python-version
 

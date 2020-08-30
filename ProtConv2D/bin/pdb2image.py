@@ -1457,6 +1457,7 @@ if __name__ == "__main__":
     #     sys.modules['__main__'] = prody  # Ensures pickle lookups on __main__ find matching version
 
     userid="none"
+    
     # PARSE COMMAND LINE ARGUMENTS
     ap = argparse.ArgumentParser()
     ap.add_argument("--basepath", default=f"/home/{userid}/data", help="")
@@ -1543,6 +1544,7 @@ if __name__ == "__main__":
         print("Drawing %i id samples." % args.sample)
         idlist = random.sample(idlist, args.sample)
 
+    # If PDB files not available, download them using Prody
     if args.download_files:
         for item in idlist:
             filename = "{}.{}".format(item, "pdb")
