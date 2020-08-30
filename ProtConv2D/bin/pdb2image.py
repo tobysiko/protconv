@@ -25,7 +25,6 @@ import tables
 from scipy.misc import imread, imresize, imsave
 from sklearn.metrics.pairwise import pairwise_distances
 
-# from Bio.PDB import PDBParser, PDBExceptions, PDBIO, Selection, Residue
 import pathlib
 local_path = pathlib.Path(__file__).parent.absolute()
 sys.path.append(os.path.split(local_path)[0])
@@ -516,7 +515,7 @@ class PDBToImageConverter:
             if not os.path.exists(p):
                 if verbosity > 0:
                     print("Error: could not find ", p)
-                # continue                
+                continue                
 
             ## png image things
             for_sparse = []
@@ -562,7 +561,6 @@ class PDBToImageConverter:
                 if self.verbosity > 1:
                     print("Parse protein:")
 
-                # atoms = parser(dom)
                 prot = parser(p).select(self.selection, quiet=True)
 
                 pocket = None
@@ -576,9 +574,6 @@ class PDBToImageConverter:
                 print("ERROR while parsing %s:" % p, e)
                 continue
             # EXTRACT ATOM SEQUENCE
-            print("P",p)
-            print("PROT",prot)
-            print("POCKET",pocket)
             atom_df = self.get_atom_sequence(prot, pocket)
 
             nat = prot.numAtoms()
@@ -708,18 +703,6 @@ class PDBToImageConverter:
                     seqindmat,
                     distmat_pocket,
                 ) = self.my_mats(atom_df)
-            # assert distmat.shape == (nat,nat)
-
-            # if distmat.shape != (nat,nat):
-            #     if self.verbosity>1: print("Build dist mat:")
-
-            #     if type(distmat)==type(None):
-            #         if self.is_pdbbind:
-            #             distmat, distmat_pocket = buildDistMatrixAnnot(prot, atoms2=None, annot_group=pocket, unitcell=None, format='mat')
-            #         else:
-            #             distmat = prody.buildDistMatrix(prot)
-            #             distmat_pocket = None
-            #     assert distmat.shape == (nat,nat)
 
             for ch in self.channels:
                 if self.overwrite_files or is_missing[ch]:
@@ -802,7 +785,6 @@ class PDBToImageConverter:
                     plt.colorbar(cax)
                     plt.title("atomic pairwise matrix (%s); %s" % (ch, self.selection))
                     plt.show()
-                    # cax=plt.imshow(self.norm_mat_img(matrices[ch]), interpolation="none");plt.gca().grid(False);plt.colorbar(cax);plt.title("atomic pairwise matrix (%s); %s"%(ch, self.selection));plt.show()
             if len(matrices) >= 3:
                 if show_pairplot:
 
