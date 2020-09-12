@@ -72,6 +72,11 @@ target/
 # Jupyter Notebook
 .ipynb_checkpoints
 
+# PDB or PQR files
+*.pdb
+*.pqr
+*.pdb.gz
+
 # pyenv
 .python-version
 
@@ -102,3 +107,6 @@ venv.bak/
 
 # mypy
 .mypy_cache/
+
+# Mac things
+.DS_Store

@@ -25,7 +25,6 @@ import tables
 from scipy.misc import imread, imresize, imsave
 from sklearn.metrics.pairwise import pairwise_distances
 
-# from Bio.PDB import PDBParser, PDBExceptions, PDBIO, Selection, Residue
 import pathlib
 local_path = pathlib.Path(__file__).parent.absolute()
 sys.path.append(os.path.split(local_path)[0])
@@ -51,7 +50,7 @@ class PDBToImageConverter:
         overwrite_files=False,
         selection="protein and heavy",
         pdb_suffix=".pqr",
-        channels=["dist", "coulomnb", "seqindex"],
+        channels=["dist", "coulomb", "seqindex"],
         output_format="png",
         save_channels=True,
         randomize_list=False,
@@ -358,9 +357,12 @@ class PDBToImageConverter:
 
         return cmat
 
+    """
+        Given a protein and pocket object, returns the atom sequence.
+        prot: an AtomGroup object defined by the prody package
+    """
     def get_atom_sequence(self, prot, pocket):
         d = OrderedDict()
-        # d["anum"]=prot.getACSIndex()
         d["aname"] = prot.getNames()
         # d["elem"]=prot.getElements()
         # d["mass"]=prot.getMasses()
@@ -370,9 +372,15 @@ class PDBToImageConverter:
         d["rseq"] = np.array([s for s in prot.getSequence()])
         d["chid"] = prot.getChids()
         d["chind"] = prot.getChindices()
+
+        # TODO: add charges for .pdb files
         if self.pdb_suffix == ".pqr":
             d["charges"] = prot.getCharges().astype(np.float16)
             d["radii"] = prot.getRadii().astype(np.float16)
+        else:
+            d["charges"] = [0] * len(d["aname"])
+            d["radii"] = [0] * len(d["aname"])
+            
 
         d["x"], d["y"], d["z"] = zip(*prot.getCoords().astype(np.float16))
         d["x"] = np.array(d["x"], dtype=np.float16)
@@ -401,7 +409,6 @@ class PDBToImageConverter:
         return df
 
     def pdb2mat(self, pdb, channels=["dist", "anm", "electro"]):
-
         if self.pdb_suffix == ".pqr":
             prot = prody.parsePQR(pdb).select(self.selection)
         else:
@@ -426,7 +433,6 @@ class PDBToImageConverter:
                     prot, name=pdb.strip(self.pdb_suffix) + "_modes.pdb"
                 )
                 nbmat = self.pdb2electro
-
                 matrices[ch] = matrices[ch] = np.array(
                     [
                         [
@@ -446,8 +452,16 @@ class PDBToImageConverter:
                 matrices[ch] = np.power(distmat, -2 * 4)
         return matrices
 
-    # Main function. Does the actual conversion from PDB/PQR file to image/array file.
+    def show_protein(dom):
+        plt.close("all")
+        print("Showing protein")
+        q = "pdb:%s" % dom[:4]
 
+        p3d = py3Dmol.view(query=q)
+        p3d.setStyle({"cartoon": {"color": "spectrum"}})
+        p3d.show()
+
+    # Main function. Does the actual conversion from PDB/PQR file to image/array file.
     def convert_pdbs_to_arrays(
         self,
         verbosity=0,
@@ -480,13 +494,7 @@ class PDBToImageConverter:
         for di in range(n):
             dom = self.id_list[di]
             if show_protein:
-                plt.close("all")
-                print("Showing protein")
-                q = "pdb:%s" % dom[:4]
-
-                p3d = py3Dmol.view(query=q)
-                p3d.setStyle({"cartoon": {"color": "spectrum"}})
-                p3d.show()
+                self.show_protein(dom)
 
             if self.is_pdbbind:
                 p = os.path.join(
@@ -498,7 +506,7 @@ class PDBToImageConverter:
                 )  ## currently not using PQR for pockets!!!!
                 if not os.path.exists(pp):
                     if verbosity > 0:
-                        print("Error: could not find ", p)
+                        print("Error: could not find ", pp)
                     continue
             else:
                 p = os.path.join(self.pdb_path, "%s%s" % (dom, self.pdb_suffix))
@@ -507,8 +515,9 @@ class PDBToImageConverter:
             if not os.path.exists(p):
                 if verbosity > 0:
                     print("Error: could not find ", p)
-                continue
+                continue                
 
+            ## png image things
             for_sparse = []
             matrices = {}
             distmat = np.array([])
@@ -551,6 +560,7 @@ class PDBToImageConverter:
             try:
                 if self.verbosity > 1:
                     print("Parse protein:")
+
                 prot = parser(p).select(self.selection, quiet=True)
 
                 pocket = None
@@ -693,18 +703,6 @@ class PDBToImageConverter:
                     seqindmat,
                     distmat_pocket,
                 ) = self.my_mats(atom_df)
-            # assert distmat.shape == (nat,nat)
-
-            # if distmat.shape != (nat,nat):
-            #     if self.verbosity>1: print("Build dist mat:")
-
-            #     if type(distmat)==type(None):
-            #         if self.is_pdbbind:
-            #             distmat, distmat_pocket = buildDistMatrixAnnot(prot, atoms2=None, annot_group=pocket, unitcell=None, format='mat')
-            #         else:
-            #             distmat = prody.buildDistMatrix(prot)
-            #             distmat_pocket = None
-            #     assert distmat.shape == (nat,nat)
 
             for ch in self.channels:
                 if self.overwrite_files or is_missing[ch]:
@@ -787,7 +785,6 @@ class PDBToImageConverter:
                     plt.colorbar(cax)
                     plt.title("atomic pairwise matrix (%s); %s" % (ch, self.selection))
                     plt.show()
-                    # cax=plt.imshow(self.norm_mat_img(matrices[ch]), interpolation="none");plt.gca().grid(False);plt.colorbar(cax);plt.title("atomic pairwise matrix (%s); %s"%(ch, self.selection));plt.show()
             if len(matrices) >= 3:
                 if show_pairplot:
 
@@ -918,7 +915,9 @@ class PDBToImageConverter:
             xyz1 = np.array(
                 (atom_df.loc[a1, "x"], atom_df.loc[a1, "y"], atom_df.loc[a1, "z"])
             )  # atomseq["coords"][a1]
+
             q1 = atom_df.loc[a1, "charges"]
+
             r1 = atom_df.loc[a1, "rnum"]
             for a2 in range(n):
                 if a1 < a2:
@@ -1078,30 +1077,12 @@ def buildDistMatrixAnnot(
     :type format: bool"""
 
     prot_atoms = atoms1
-    # print atoms1.getResnums()
-    # print atoms1.getSequence()
-    # print atoms1.getChids()
-
-    # print annot_group.getResnums()
-    # print annot_group.getSequence()
-
     annot_resnums = annot_group.getResnums()
     annot_chains = annot_group.getChids()
-    # print annot_chains
 
     if " " in annot_chains:  # WHAT DOES THIS MEAN?
         unique_chains = pd.Series(prot_atoms.getChids()).unique()
         annot_chains = [unique_chains[0] for _ in annot_chains]
-    #         annot_chains_new = []
-    #         annot_resnums_new = []
-    #         for c in unique_chains:
-    #             annot_chains_new.extend( [c for _ in annot_resnums ] )
-    #             annot_resnums_new.extend(annot_resnums)
-    #         print annot_chains_new
-    #         print annot_resnums_new
-    #         annot_chains = annot_chains_new
-    #         annot_resnums = annot_resnums_new
-    # print annot_chains
 
     annot_rc_pairs = zip(annot_resnums, annot_chains)
     atoms1_is_pocket = np.zeros(len(atoms1))
@@ -1177,7 +1158,7 @@ def buildDistMatrixAnnot(
 
 #  Obtain domain list from file. Domain IDs are the first white-space separated entry in a line. Comments (#...) are ignored.
 def getDomList(loc):
-    assert os.path.exists(loc), loc
+    assert os.path.exists(loc), "{} does not exist".format(loc)
     with open(loc, "r") as domlistfile:
         lines = domlistfile.readlines()  # .split()
     idlist = []
@@ -1203,7 +1184,7 @@ def pdb2pqr(
     options=" --chain   " % (),
     overwrite=False,
 ):
-    # DOC: https://apbs-pdb2pqr.readthedocs.io/en/latest/pdb2pqr/invoking.html#method-descriptions
+    # DOC: https://pdb2pqr.readthedocs.io/en/latest/getting.html
     # binaries: https://sourceforge.net/projects/pdb2pqr/
     assert os.path.exists(
         exe
@@ -1220,7 +1201,7 @@ def pdb2pqr(
                 os.path.join(pdbloc, dom, "%s_ligand.mol2" % dom)
             )
         else:
-            dompdb = os.path.join(pdbloc, "%s" % dom[:4].lower() + dom[4:].upper())
+            dompdb = os.path.join(pdbloc, "%s.pdb" % dom[:4].lower() + dom[4:].upper())
             dompqr = os.path.join(pqrloc, "%s.pqr" % dom)
             ligand = ""
         if not quiet:
@@ -1457,11 +1438,13 @@ if __name__ == "__main__":
     #     globals().update(vars(prody))  # Replaces current contents with newly imported stuff
     #     sys.modules['__main__'] = prody  # Ensures pickle lookups on __main__ find matching version
 
+    userid="none"
+    
     # PARSE COMMAND LINE ARGUMENTS
     ap = argparse.ArgumentParser()
     ap.add_argument("--basepath", default=f"/home/{userid}/data", help="")
     ap.add_argument(
-        "--idlistfile", default="cath-dataset-nonredundant-S40.list.txt", help=""
+        "--idlistfile", default="cath-dataset-nonredundant-S40.list.txt", help="List of ID's to parse"
     )
     ap.add_argument(
         "--pdbpath",
@@ -1485,7 +1468,7 @@ if __name__ == "__main__":
         help="a valid ProDy selection",
     )
     ap.add_argument("--overwrite", action="store_true", default=False, help="")
-    ap.add_argument("--calcpqr", action="store_true", default=False, help="")
+    ap.add_argument("--calcpqr", action="store_true", default=False, help="Option to convert PDB files to PQR")
     ap.add_argument(
         "--informat", choices=["pdb", "pqr"], default="pqr", help="pdb or pqr"
     )
@@ -1524,6 +1507,7 @@ if __name__ == "__main__":
         default=1,
         help="Number of processes to use in parallel. Set to -1 to use all cores minus 2.",
     )
+    ap.add_argument("--download_files", action="store_true", help="Downloads all PDB files indicated in ID list, if not already downloaded")
 
     args = ap.parse_args()
     print("Settings:", args)
@@ -1535,10 +1519,21 @@ if __name__ == "__main__":
         idlist = list(meta_df[meta_df["is_refined"] == True]["PDB code"].values)
     else:
         idlist = getDomList(os.path.join(args.basepath, args.idlistfile))
-    print(len(idlist), "PDB files expected")
+
+    print("{} PDB files expected".format(len(idlist)))
+
     if args.sample >= 0:
         print("Drawing %i id samples." % args.sample)
         idlist = random.sample(idlist, args.sample)
+
+    # If PDB files not available, download them using Prody
+    if args.download_files:
+        for item in idlist:
+            filename = "{}.{}".format(item, "pdb")
+            path = os.path.join(args.basepath, args.pdbpath, filename)
+            if not os.path.exists(path):
+                atoms = prody.parsePDB(item)
+                prody.writePDB(path, atoms)
 
     # optionally, if no PQR files available, convert a folder of PDB files to a folder of PQR files. PQR needed when partial charges required.
     if args.calcpqr:

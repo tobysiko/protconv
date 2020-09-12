@@ -19,7 +19,18 @@ The usefulness of these fingerprints is demonstrated in a compound/target activi
 # Getting Started
 TODO: Guide users through getting your code up and running on their own system. In this section you can talk about:
 1.	Installation process
+All the relevant scripting files are in ProtConv2D/bin. Example run here. (TODO)
 2.	Software dependencies
+	- python 3.7+
+	- pandas 
+	- prody 1.10.11+
+	- pdb2pqr 3.0.1
+    - biopython
+    - scipy==1.2.0
+    - tables
+    - matplotlib
+    - seaborn
+    - sklearn
 3.	Latest releases
 4.	API references
 
